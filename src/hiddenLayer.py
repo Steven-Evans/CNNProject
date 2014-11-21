@@ -4,7 +4,7 @@ import theano
 import theano.tensor as T
 
 class HiddenLayer(object):
-    def __init__(self, rng, input, n_in, n_out, W=None, b=None, activation=T.tanh):
+    def __init__(self, rng, input, n_in, n_out, W=None, b=None, activation=T.sigmoid):
         
         """
         Typical hidden layer of a MLP: units are fully-connected and have
