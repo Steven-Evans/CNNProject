@@ -1,4 +1,5 @@
 
+import numpy
 import theano
 import theano.tensor as T
 
@@ -45,7 +46,7 @@ class LogisticRegression(object):
         self.b = theano.shared(
             value = numpy.zeros(
                 (n_out,),
-                dtype = theano.conig.floatX
+                dtype = theano.config.floatX
             ),
             name = 'b',
             borrow = True

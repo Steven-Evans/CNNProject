@@ -8,7 +8,7 @@ import theano.tensor as T
 #adapted from http://deeplearning.net/tutorial/logreg.html
 
 def load_MNIST():
-    dataset = 'data/mnist.pkl.gz'
+    dataset = '../data/mnist.pkl.gz'
     dataset_url = 'http://www.iro.umontreal.ca/~lisa/deep/data/mnist/mnist.pkl.gz'
 
     #download the dataset if it isn't in the current folder

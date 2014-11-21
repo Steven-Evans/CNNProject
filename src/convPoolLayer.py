@@ -1,9 +1,15 @@
+import numpy
+import theano
+import theano.tensor as T
+from theano.tensor.nnet import conv
+from theano.tensor.signal import downsample
+
 #adapted from http://deeplearning.net/tutorial/lenet.html
 
 class ConvPoolLayer(object):
     """Pool Layer of a convolutional network """
     
-    def __init__(self, rng, input, filter_shape, image_shape, poolsize(2,2)):
+    def __init__(self, rng, input, filter_shape, image_shape, poolsize=(2,2)):
         """
         Allocate a convolutional pool layer with shared memory
 
@@ -25,7 +31,7 @@ class ConvPoolLayer(object):
         :param poolsize: the downsampling (pooling) factor (#rows, #cols)
         """
 
-        assert images_shape[1] = filter_shape[1]
+        assert image_shape[1] == filter_shape[1]
         self.input = input
         
         fan_in = numpy.prod(filter_shape[1:])
@@ -41,7 +47,7 @@ class ConvPoolLayer(object):
         )
         
         #set the bias values
-        b_values = numpy.zeroes((filter_shape[0],), dtype=theano.config.floatX)
+        b_values = numpy.zeros((filter_shape[0],), dtype=theano.config.floatX)
         self.b = theano.shared(value=b_values, borrow=True)
         
         #convol input feature maps with filters
@@ -59,7 +65,7 @@ class ConvPoolLayer(object):
             ignore_border=True
         )
 
-        self.output = T.tanh(pooled_out + self.b.dimshuffle('x', 0, 'x', 'x'))
+        self.output = T.tanh(subsample_out + self.b.dimshuffle('x', 0, 'x', 'x'))
         
         self.params = [self.W, self.b]
         

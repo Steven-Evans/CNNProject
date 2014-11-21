@@ -1,5 +1,6 @@
 #adapted from http://deeplearning.net/tutorial/code/mlp.py
 
+import numpy
 import theano
 import theano.tensor as T
 
@@ -49,7 +50,7 @@ class HiddenLayer(object):
             W = theano.shared(value=W_values, name='W', borrow=True)
             
         if b is None:
-            b_values = numpy.zeroes((n_out,), dtype=theano.config.floatX)
+            b_values = numpy.zeros((n_out,), dtype=theano.config.floatX)
             b = theano.shared(value=b_values, name='b', borrow=True)
 
         self.W = W

@@ -1,3 +1,6 @@
+import time
+
+import numpy
 
 import theano
 import theano.tensor as T
@@ -8,9 +11,13 @@ from hiddenLayer import HiddenLayer
 from classifiers import LogisticRegression
 
 
-def build_model(batch_size):
+def build_model(datasets, batch_size, rng, learning_rate):
 
     nkerns = [20, 50]
+
+    x = T.matrix('x')
+    y = T.ivector('y')
+    index = T.lscalar()
 
     #reshape the image as input to the first conv pool layer
     #MNIST images are 28x28
@@ -34,7 +41,7 @@ def build_model(batch_size):
     
     #flatten the output of the convpool layer for input to the MLP layer
     layer2_input = layer1.output.flatten(2)
-        
+    
     layer2 = HiddenLayer(
         rng,
         input = layer2_input,
@@ -55,10 +62,11 @@ def build_model(batch_size):
 
     gradients = T.grad(cost, params)
     
-    updates = [(param_i, param_i - learning_rate * grad_i) for param_i, grad_i in zip(params, grads)]
+    updates = [(param_i, param_i - learning_rate * grad_i) for param_i, grad_i in zip(params, gradients)]
 
-    x = T.matrix('x')
-    y = T.ivector('y')
+    train_set_x, train_set_y = datasets[0]
+    valid_set_x, valid_set_y = datasets[1]
+    test_set_x, test_set_y = datasets[2]
 
     train_model = theano.function(
         [index],
@@ -93,23 +101,21 @@ def build_model(batch_size):
     
 def train_LeNet(datasets):
     
-    batch_size = 500
+    batch_size = 500    
+    learning_rate = 0.1
+    rng = numpy.random.RandomState(23455)
     
-    train_model, valid_model, test_model = build_model(batch_size)
-
-
-    train_set_x, train_set_y = datasets[0]
-    valid_set_x, valid_set_y = datasets[1]
-    test_set_x, test_set_y = datasets[2]
-
+    train_model, valid_model, test_model = build_model(datasets, batch_size, rng, learning_rate)
+    
     # compute number of minibatches for training, validation and testing
-    n_train_batches = train_set_x.get_value(borrow=True).shape[0]
-    n_valid_batches = valid_set_x.get_value(borrow=True).shape[0]
-    n_test_batches = test_set_x.get_value(borrow=True).shape[0]
+    n_train_batches = datasets[0][0].get_value(borrow=True).shape[0]
+    n_valid_batches = datasets[0][0].get_value(borrow=True).shape[0]
+    n_test_batches = datasets[0][0].get_value(borrow=True).shape[0]
     n_train_batches /= batch_size
     n_valid_batches /= batch_size
     n_test_batches /= batch_size
     
+    n_epochs = 200
     patience = 10000
     patience_increase = 2
 
@@ -124,13 +130,12 @@ def train_LeNet(datasets):
     epoch = 0
     done_looping = False
 
-    while (epock < n_epochs) and (not done_looping):
+    while (epoch < n_epochs) and (not done_looping):
         epoch = epoch + 1
         for minibatch_index in xrange(n_train_batches):
             iter = (epoch - 1) * n_train_batches + minibatch_index
-            
-            if iter % 100 == 0:
-                print 'trainig @ iter = ', iter
+        if iter % 100 == 0:
+            print 'trainig @ iter = ', iter
             cost_ij = train_model(minibatch_index)
 
             if (iter + 1) % validation_frequency == 0:
@@ -154,12 +159,14 @@ def train_LeNet(datasets):
                     #print(('    epoch %i, minibatch %i/%i, test error of best model %f %%') %
                     #      (epoch, minibatch_index + 1, n_train_batches, test_score * 100.0))
             if patience <= iter:
+                print('made it')
                 done_looping = True
                 break
                 
     end_time = time.clock()
     print('Optimization complete.')
-    print('Best validation score of %f' % 
+    print('Best validation score of %f %% obtained at iteration %i' % 
+          (best_validation_loss * 100.0, best_iter + 1))
 
 def test_LeNet():
     datasets = load_MNIST()
