@@ -109,8 +109,8 @@ def train_LeNet(datasets):
     
     # compute number of minibatches for training, validation and testing
     n_train_batches = datasets[0][0].get_value(borrow=True).shape[0]
-    n_valid_batches = datasets[0][0].get_value(borrow=True).shape[0]
-    n_test_batches = datasets[0][0].get_value(borrow=True).shape[0]
+    n_valid_batches = datasets[1][0].get_value(borrow=True).shape[0]
+    n_test_batches = datasets[2][0].get_value(borrow=True).shape[0]
     n_train_batches /= batch_size
     n_valid_batches /= batch_size
     n_test_batches /= batch_size
@@ -129,18 +129,20 @@ def train_LeNet(datasets):
 
     epoch = 0
     done_looping = False
-
+    
     while (epoch < n_epochs) and (not done_looping):
         epoch = epoch + 1
         for minibatch_index in xrange(n_train_batches):
             iter = (epoch - 1) * n_train_batches + minibatch_index
-        if iter % 100 == 0:
-            print 'trainig @ iter = ', iter
+            
+            if iter % 100 == 0:
+                print 'trainig @ iter = ', iter
+            
             cost_ij = train_model(minibatch_index)
 
             if (iter + 1) % validation_frequency == 0:
                 
-                validation_losses = [validate_model(i) for i in xrange(n_valid_batches)]
+                validation_losses = [valid_model(i) for i in xrange(n_valid_batches)]
                 this_validation_loss = numpy.mean(validation_losses)
 
                 print('epoch %i, minibatch %i/%i, validation error %f %%' %
@@ -175,4 +177,4 @@ def test_LeNet():
 
 if __name__ == '__main__':
     test_LeNet()
-    
+     
