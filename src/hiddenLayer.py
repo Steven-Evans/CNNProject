@@ -56,11 +56,13 @@ class HiddenLayer(object):
         self.W = W
         self.b = b
 
+        #amplitude of activation function tanh. Magic from lecun
+        amp = 1.7195
+        #slope of activation function tanh at 0. Magic from lecun
+        slope = 2.0 / 3.0
         lin_output = T.dot(input, self.W) + self.b
-        self.output = (
-            lin_output if activation is None
-            else activation(lin_output)
-        )
+        self.output = amp * T.tanh(slope * lin_output)
+
         self.params = [self.W, self.b]
 
 

@@ -9,11 +9,12 @@ from loadMNIST import load_MNIST
 from convPoolLayer import ConvPoolLayer
 from hiddenLayer import HiddenLayer
 from classifiers import LogisticRegression
+from convolutionLayer import ConvolutionLayer
+from subsampleLayer import SubsampleLayer
+
 
 
 def build_model(datasets, batch_size, rng, learning_rate):
-
-    nkerns = [20, 50]
 
     x = T.matrix('x')
     y = T.ivector('y')
@@ -23,42 +24,66 @@ def build_model(datasets, batch_size, rng, learning_rate):
     #MNIST images are 28x28
     layer0_input = x.reshape((batch_size, 1, 28, 28))
     
-    layer0 = ConvPoolLayer(
-        rng,
+    layer0_conv = ConvolutionLayer(
+        rng = rng,
         input = layer0_input,
-        image_shape = (batch_size, 1, 28, 28),
-        filter_shape = (nkerns[0], 1, 5, 5),
-        poolsize = (2,2)
+        input_shape = (batch_size, 1, 28, 28),
+        filter_shape = (6, 1, 5, 5)
     )
 
-    layer1 = ConvPoolLayer(
-        rng,
-        input = layer0.output,
-        image_shape = (batch_size, nkerns[0], 12, 12),
-        filter_shape = (nkerns[1], nkerns[0], 5, 5),
-        poolsize = (2,2)
+    layer0_subsample = SubsampleLayer(
+        rng = rng,
+        input = layer0_conv.output,
+        input_shape = (batch_size, 6, 24, 24),
+        pool_size = (2, 2)
+    )
+
+    #TODO: need to make custom layer
+    layer1_conv = ConvolutionLayer(
+        rng = rng,
+        input = layer0_subsample.output,
+        input_shape = (batch_size, 6, 12, 12),
+        filter_shape = (16, 6, 5, 5)
     )
     
+    layer1_subsample = SubsampleLayer(
+        rng = rng,
+        input = layer1_conv.output,
+        input_shape = (batch_size, 16, 8, 8),
+        pool_size = (2, 2)
+    )
+
+    layer2_conv = ConvolutionLayer(
+        rng = rng,
+        input = layer1_subsample.output,
+        input_shape = (batch_size, 16, 4, 4),
+        filter_shape = (120, 16, 4, 4)
+    )
+
     #flatten the output of the convpool layer for input to the MLP layer
-    layer2_input = layer1.output.flatten(2)
-    
-    layer2 = HiddenLayer(
+    layer3_input = layer2_conv.output.flatten(2)
+
+    layer3 = HiddenLayer(
         rng,
-        input = layer2_input,
-        n_in = nkerns[1] * 4 * 4,
-        n_out = 500,
+        input = layer3_input,
+        n_in = 120,
+        n_out = 84,
         activation = T.tanh
     )
     
-    layer3 = LogisticRegression(
-        input = layer2.output,
-        n_in = 500,
+    #TODO: Change to RBF
+    layer4 = LogisticRegression(
+        input = layer3.output,
+        n_in = 84,
         n_out = 10
     )
     
-    cost = layer3.negative_log_likelihood(y)
+    cost = layer4.negative_log_likelihood(y)
     
-    params = layer3.params + layer2.params + layer1.params + layer0.params
+    params = layer4.params + layer3.params + \
+             layer2_conv.params + \
+             layer1_conv.params + layer1_subsample.params + \
+             layer0_conv.params + layer0_subsample.params
 
     gradients = T.grad(cost, params)
     
@@ -80,7 +105,7 @@ def build_model(datasets, batch_size, rng, learning_rate):
 
     valid_model = theano.function(
         [index],
-        layer3.errors(y),
+        layer4.errors(y),
         givens = {
             x: valid_set_x[index * batch_size: (index + 1) * batch_size],
             y: valid_set_y[index * batch_size: (index + 1) * batch_size]
@@ -89,7 +114,7 @@ def build_model(datasets, batch_size, rng, learning_rate):
     
     test_model = theano.function(
         [index],
-        layer3.errors(y),
+        layer4.errors(y),
         givens = {
             x: test_set_x[index * batch_size: (index + 1) * batch_size],
             y: test_set_y[index * batch_size: (index + 1) * batch_size]
@@ -101,7 +126,7 @@ def build_model(datasets, batch_size, rng, learning_rate):
     
 def train_LeNet(datasets):
     
-    batch_size = 500    
+    batch_size = 500
     learning_rate = 0.1
     rng = numpy.random.RandomState(23455)
     
@@ -136,7 +161,7 @@ def train_LeNet(datasets):
             iter = (epoch - 1) * n_train_batches + minibatch_index
             
             if iter % 100 == 0:
-                print 'trainig @ iter = ', iter
+                print 'training @ iter = ', iter
             
             cost_ij = train_model(minibatch_index)
 
