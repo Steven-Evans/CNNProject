@@ -11,7 +11,7 @@ from hiddenLayer import HiddenLayer
 from classifiers import LogisticRegression
 from convolutionLayer import ConvolutionLayer
 from subsampleLayer import SubsampleLayer
-
+from customConvLayer import CustomConvLayer
 
 
 def build_model(datasets, batch_size, rng, learning_rate):
@@ -38,8 +38,8 @@ def build_model(datasets, batch_size, rng, learning_rate):
         pool_size = (2, 2)
     )
 
-    #TODO: need to make custom layer
-    layer1_conv = ConvolutionLayer(
+    #the custom convolution layer: C4 in lecun
+    layer1_conv = CustomConvLayer(
         rng = rng,
         input = layer0_subsample.output,
         input_shape = (batch_size, 6, 12, 12),
