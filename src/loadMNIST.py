@@ -15,7 +15,6 @@ def load_MNIST():
         with open(normalized_file, 'rb') as f:
             return cPickle.load(f)
 
-
     dataset_file = '../data/mnist.pkl.gz'
     dataset_url = 'http://www.iro.umontreal.ca/~lisa/deep/data/mnist/mnist.pkl.gz'
 
@@ -40,16 +39,13 @@ def load_MNIST():
     #the number of rows in the input. It should give the target
     #target to the example with the same index in the input.
 
-    #don't want a validation set, add to training set
-#    train_set = (numpy.concatenate((train_set[0], valid_set[0])), 
-#                 numpy.concatenate((train_set[1], valid_set[1])))
+    #don't want a validation set, add it to the training set
+    train_set = (numpy.concatenate((train_set[0], valid_set[0])), 
+                 numpy.concatenate((train_set[1], valid_set[1])))
 
     #pad images so that they're 32x32 instead of 28x28
-    #TODO add the padding
-
     test_set = addThatPad(test_set)
     train_set = addThatPad(train_set)
-    valid_set = addThatPad(valid_set)
 
     def shared_dataset(data_xy, borrow=True):
         """ Function that loads the dataset into shared variables
@@ -76,10 +72,8 @@ def load_MNIST():
         
     test_set_x, test_set_y = shared_dataset(test_set)
     train_set_x, train_set_y = shared_dataset(train_set)
-    valid_set_x, valid_set_y = shared_dataset(valid_set)
 
-    rval = [(train_set_x, train_set_y),  (valid_set_x, valid_set_y), \
-            (test_set_x, test_set_y)]
+    rval = [(train_set_x, train_set_y), (test_set_x, test_set_y)]
 
     #write the normalize file so we don't have to normalize it again
     with open(normalized_file,'wb') as f:
@@ -91,7 +85,7 @@ if __name__ == '__main__':
     datasets = load_MNIST()
 
     train_set_x, train_set_y = datasets[0]
-    test_set_x, test_set_y = datasets[2]
+    test_set_x, test_set_y = datasets[1]
 
     #example how to recover the data
     print(train_set_x.get_value().shape)

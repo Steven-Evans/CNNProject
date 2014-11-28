@@ -90,8 +90,7 @@ def build_model(datasets, batch_size, rng, learning_rate):
     updates = [(param_i, param_i - learning_rate * grad_i) for param_i, grad_i in zip(params, gradients)]
 
     train_set_x, train_set_y = datasets[0]
-    valid_set_x, valid_set_y = datasets[1]
-    test_set_x, test_set_y = datasets[2]
+    test_set_x, test_set_y = datasets[1]
 
     train_model = theano.function(
         [index],
@@ -103,15 +102,6 @@ def build_model(datasets, batch_size, rng, learning_rate):
         }
     )
 
-    valid_model = theano.function(
-        [index],
-        layer4.errors(y),
-        givens = {
-            x: valid_set_x[index * batch_size: (index + 1) * batch_size],
-            y: valid_set_y[index * batch_size: (index + 1) * batch_size]
-        }
-    )
-    
     test_model = theano.function(
         [index],
         layer4.errors(y),
@@ -121,85 +111,47 @@ def build_model(datasets, batch_size, rng, learning_rate):
         }
     )
 
-    return (train_model, valid_model, test_model)
-    
-    
+    return (train_model, test_model)
+
 def train_LeNet(datasets):
-    
-    batch_size = 500
-    learning_rate = 0.1
+    learning_rate = theano.shared(numpy.cast[theano.config.floatX](0),
+                                  borrow = True)
+
+    learning_rates = [0.0005]*2 \
+                     + [.0002]*3 \
+                     + [.0001]*3 \
+                     + [.00005]*4 \
+                     + [.00001]*8
+
+    n_train = datasets[0][0].get_value(borrow=True).shape[0]
+    n_test = datasets[1][0].get_value(borrow=True).shape[0]
+
     rng = numpy.random.RandomState(23455)
-    
-    train_model, valid_model, test_model = build_model(datasets, batch_size, rng, learning_rate)
-    
-    # compute number of minibatches for training, validation and testing
-    n_train_batches = datasets[0][0].get_value(borrow=True).shape[0]
-    n_valid_batches = datasets[1][0].get_value(borrow=True).shape[0]
-    n_test_batches = datasets[2][0].get_value(borrow=True).shape[0]
-    n_train_batches /= batch_size
-    n_valid_batches /= batch_size
-    n_test_batches /= batch_size
-    
-    n_epochs = 200
-    patience = 10000
-    patience_increase = 2
 
-    improvement_threshold = 0.995
+    train_model, test_model = build_model(datasets, 1, rng, learning_rate)
     
-    validation_frequency = min(n_train_batches, patience /2)
-
-    best_validation_loss = numpy.inf
-    best_iter = 0
     start_time = time.clock()
 
-    epoch = 0
-    done_looping = False
-    
-    while (epoch < n_epochs) and (not done_looping):
-        epoch = epoch + 1
-        for minibatch_index in xrange(n_train_batches):
-            iter = (epoch - 1) * n_train_batches + minibatch_index
-            
-            if iter % 100 == 0:
-                print 'training @ iter = ', iter
-            
-            cost_ij = train_model(minibatch_index)
+    for iter in xrange(0,len(learning_rates)):
+        learning_rate.set_value(learning_rates[iter])
+        
+        for i in xrange(0,n_train):
+            cost_ij = train_model(i)
+        
+        test_losses = [test_model(i) for i in xrange(n_test)]
+        test_score = numpy.mean(test_losses)
+        print(('iter %i, test error: %f %%') %
+              (iter, test_score * 100.0))
 
-            if (iter + 1) % validation_frequency == 0:
-                
-                validation_losses = [valid_model(i) for i in xrange(n_valid_batches)]
-                this_validation_loss = numpy.mean(validation_losses)
-
-                print('epoch %i, minibatch %i/%i, validation error %f %%' %
-                      (epoch, minibatch_index + 1, n_train_batches, this_validation_loss * 100.0))
-
-                if this_validation_loss < best_validation_loss:
-                    if this_validation_loss < best_validation_loss * improvement_threshold:
-                        patience = max(patience, iter * patience_increase)
-                    
-                    best_validation_loss = this_validation_loss
-                    best_iter = iter
-                    
-                    #if checking test error
-                    #test_losses = [ test_model(i) for i in xrange(n_test_batches)]
-                    #test_score = numpy.mean(test_losses)
-                    #print(('    epoch %i, minibatch %i/%i, test error of best model %f %%') %
-                    #      (epoch, minibatch_index + 1, n_train_batches, test_score * 100.0))
-            if patience <= iter:
-                print('made it')
-                done_looping = True
-                break
-                
     end_time = time.clock()
-    print('Optimization complete.')
-    print('Best validation score of %f %% obtained at iteration %i' % 
-          (best_validation_loss * 100.0, best_iter + 1))
 
-def test_LeNet():
-    datasets = load_MNIST()
-    train_LeNet(datasets)
+    print(('Optimization completed %i iterations in %.2f mins '
+          'with final error rate of %f%%') %
+          (len(learning_rates), ((end_time - start_time) / 60.0),
+           test_score * 100.0))
 
 
 if __name__ == '__main__':
-    test_LeNet()
+    datasets = load_MNIST()
+    train_LeNet(datasets)
      
