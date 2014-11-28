@@ -22,19 +22,19 @@ def build_model(datasets, batch_size, rng, learning_rate):
 
     #reshape the image as input to the first conv pool layer
     #MNIST images are 28x28
-    layer0_input = x.reshape((batch_size, 1, 28, 28))
+    layer0_input = x.reshape((batch_size, 1, 32, 32))
     
     layer0_conv = ConvolutionLayer(
         rng = rng,
         input = layer0_input,
-        input_shape = (batch_size, 1, 28, 28),
+        input_shape = (batch_size, 1, 32, 32),
         filter_shape = (6, 1, 5, 5)
     )
 
     layer0_subsample = SubsampleLayer(
         rng = rng,
         input = layer0_conv.output,
-        input_shape = (batch_size, 6, 24, 24),
+        input_shape = (batch_size, 6, 28, 28),
         pool_size = (2, 2)
     )
 
@@ -42,22 +42,22 @@ def build_model(datasets, batch_size, rng, learning_rate):
     layer1_conv = CustomConvLayer(
         rng = rng,
         input = layer0_subsample.output,
-        input_shape = (batch_size, 6, 12, 12),
+        input_shape = (batch_size, 6, 14, 14),
         filter_shape = (16, 6, 5, 5)
     )
     
     layer1_subsample = SubsampleLayer(
         rng = rng,
         input = layer1_conv.output,
-        input_shape = (batch_size, 16, 8, 8),
+        input_shape = (batch_size, 16, 10, 10),
         pool_size = (2, 2)
     )
 
     layer2_conv = ConvolutionLayer(
         rng = rng,
         input = layer1_subsample.output,
-        input_shape = (batch_size, 16, 4, 4),
-        filter_shape = (120, 16, 4, 4)
+        input_shape = (batch_size, 16, 5, 5),
+        filter_shape = (120, 16, 5, 5)
     )
 
     #flatten the output of the convpool layer for input to the MLP layer

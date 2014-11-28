@@ -5,6 +5,7 @@ import numpy
 import theano
 import theano.tensor as T
 import matplotlib.pyplot as plt
+from addPadding import addThatPad
 
 #adapted from http://deeplearning.net/tutorial/logreg.html
 
@@ -45,6 +46,10 @@ def load_MNIST():
 
     #pad images so that they're 32x32 instead of 28x28
     #TODO add the padding
+
+    test_set = addThatPad(test_set)
+    train_set = addThatPad(train_set)
+    valid_set = addThatPad(valid_set)
 
     def shared_dataset(data_xy, borrow=True):
         """ Function that loads the dataset into shared variables
@@ -96,6 +101,6 @@ if __name__ == '__main__':
 
     #example printing out a digit
     plt.gray()
-    plt.imshow(1 - train_set_x.get_value()[0].reshape(28,28))
+    plt.imshow(1 - train_set_x.get_value()[0].reshape(32,32))
     plt.show()
         
