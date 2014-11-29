@@ -10,16 +10,11 @@ class CustomConvLayer(object):
         
         assert input_shape[1] == filter_shape[1]
         self.input = input
-
-        #TODO: initialize according to Lecun
-        fan_in = numpy.prod(filter_shape[1:])
-        fan_out = filter_shape[0] * numpy.prod(filter_shape[2:])
-        W_bound = numpy.sqrt(6.0 / (fan_in + fan_out))
         
         b_values = numpy.zeros((filter_shape[0],), dtype=theano.config.floatX)
         self.b = theano.shared(value=b_values, borrow=True)
         
-        convs, self.W = self.buildConnections(rng, input, input_shape, filter_shape, W_bound)
+        convs, self.W = self.buildConnections(rng, input, input_shape, filter_shape)
         
         #concatenate using T.concatenate([x0, x1, ..., x15], axis=1) where
         #  each x is of shape(batch_size, 1, 12, 12)        
@@ -34,7 +29,7 @@ class CustomConvLayer(object):
         
         self.params = self.W + [self.b]
 
-    def buildConnections(self, rng, input, input_shape, filter_shape, W_bound):
+    def buildConnections(self, rng, input, input_shape, filter_shape):
         
         # Table of feature map connectivity
         # Row represents input feature map and cols represent output feature maps
@@ -67,9 +62,18 @@ class CustomConvLayer(object):
 
         convs = []
         W = []
-        
+
+        #fan_in = numpy.prod(filter_shape[1:])
+        #fan_out = filter_shape[0] * numpy.prod(filter_shape[2:])
+        #W_bound = numpy.sqrt(6.0 / (fan_in + fan_out))
+
         for i in xrange(len(connections)):
             fmap_shape = (1, len(connections[i]), filter_shape[2], filter_shape[3])
+            #note: this should also be multiplied by len(connections[i]) but wont converge
+            fan_in = numpy.prod(filter_shape[2:])
+            #2.4 is magic from LeCun
+            W_bound = 2.4 / fan_in
+
             W.append(self.generateWeights(rng, fmap_shape, W_bound))
             convs.append(conv.conv2d(
                 input = input[:,connections[i],:,:],
@@ -79,7 +83,6 @@ class CustomConvLayer(object):
             ))
 
         return [convs, W]
-
 
     def generateWeights(self, rng, size, W_bound):
         return theano.shared(

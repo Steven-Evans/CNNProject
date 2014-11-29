@@ -11,10 +11,9 @@ class ConvolutionLayer(object):
         assert input_shape[1] == filter_shape[1]
         self.input = input
 
-        #TODO: initialize according to Lecun
+        #W initialized according to LeCun
         fan_in = numpy.prod(filter_shape[1:])
-        fan_out = filter_shape[0] * numpy.prod(filter_shape[2:])
-        W_bound = numpy.sqrt(6.0 / (fan_in + fan_out))
+        W_bound = 2.4 / fan_in
         
         #weights on the filters
         self.conv_W = theano.shared(
