@@ -5,6 +5,8 @@ import numpy
 import theano
 import theano.tensor as T
 
+import matplotlib.pyplot as plt
+
 from loadMNIST import load_MNIST
 from convPoolLayer import ConvPoolLayer
 from hiddenLayer import HiddenLayer
@@ -12,7 +14,7 @@ from classifiers import LogisticRegression
 from convolutionLayer import ConvolutionLayer
 from subsampleLayer import SubsampleLayer
 from customConvLayer import CustomConvLayer
-
+from webpageDisplay import createWebpage
 
 def build_model(datasets, batch_size, rng, learning_rate):
 
@@ -111,45 +113,85 @@ def build_model(datasets, batch_size, rng, learning_rate):
         }
     )
 
-    return (train_model, test_model)
+    train_pred = theano.function(
+        [index],
+        layer4.y_pred,
+        givens = {
+            x: train_set_x[index * batch_size: (index + 1) * batch_size],
+        }
+    )
+
+    test_pred = theano.function(
+        [index],
+        layer4.y_pred,
+        givens = {
+            x: test_set_x[index * batch_size: (index + 1) * batch_size],
+        }
+    )
+
+    return (train_model, train_pred, test_model, test_pred)
 
 def train_LeNet(datasets):
     learning_rate = theano.shared(numpy.cast[theano.config.floatX](0),
                                   borrow = True)
 
-    learning_rates = [0.0005]*2 \
+    learning_rates = [0.001] \
+                     + [0.0005]*3 \
                      + [.0002]*3 \
-                     + [.0001]*3 \
+                     + [.0001]*4 \
                      + [.00005]*4 \
-                     + [.00001]*8
+                     + [.00001]*5
 
     n_train = datasets[0][0].get_value(borrow=True).shape[0]
     n_test = datasets[1][0].get_value(borrow=True).shape[0]
 
     rng = numpy.random.RandomState(23455)
 
-    train_model, test_model = build_model(datasets, 1, rng, learning_rate)
-    
+    print('building model...')
+    train_model, train_pred, test_model, test_pred = build_model(datasets, 1, rng, learning_rate)
+
+    train_score = []
+    test_score = []
+
+    print('training...')
     start_time = time.clock()
 
     for iter in xrange(0,len(learning_rates)):
         learning_rate.set_value(learning_rates[iter])
         
-        for i in xrange(0,n_train):
-            cost_ij = train_model(i)
-        
+        train_losses = [train_model(i) for i in xrange(n_train)]
+        train_score.append(numpy.mean(train_losses))
+
         test_losses = [test_model(i) for i in xrange(n_test)]
-        test_score = numpy.mean(test_losses)
+        test_score.append(numpy.mean(test_losses))
         print(('iter %i, test error: %f %%') %
-              (iter, test_score * 100.0))
+              (iter, test_score[iter] * 100.0))
 
     end_time = time.clock()
 
+    test_preds = [test_pred(i)[0] for i in xrange(n_test)]
+    createWebpage(datasets, test_preds)
+    
     print(('Optimization completed %i iterations in %.2f mins '
           'with final error rate of %f%%') %
           (len(learning_rates), ((end_time - start_time) / 60.0),
-           test_score * 100.0))
+           test_score[len(learning_rates)-1] * 100.0))
 
+    printGraph(train_score, test_score)
+
+def printGraph(train_score, test_score):
+    train_score = [x * 100.0 for x in train_score]
+    test_score = [x * 100.0 for x in test_score]
+
+    plt.plot(train_score, 'bs')
+    plt.plot(test_score, 'g^')
+
+    plt.ylabel('Error Rate %')
+    plt.xlabel('Iteration #')
+    plt.title('Error Rate of Training a CNN')
+    plt.legend(['Train Error', 'Test Error'])
+    
+    plt.show()
 
 if __name__ == '__main__':
     datasets = load_MNIST()

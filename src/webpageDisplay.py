@@ -35,8 +35,8 @@ def createWebpage(datasets, predictions):
 #	else
 #		write to incorrect output file
 
-	imgArr = datasets[2][0].get_value()
-	targetArr = datasets[2][1].owner.inputs[0].get_value()
+	imgArr = datasets[1][0].get_value()
+	targetArr = datasets[1][1].owner.inputs[0].get_value()
 
 	for targetIndex in range(targetArr.size):
 		temparr = numpy.reshape(imgArr[targetIndex], (32,32))
